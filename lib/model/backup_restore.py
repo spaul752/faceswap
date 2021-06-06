@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """ Functions for backing up, restoring and creating model snapshots. """
-
+import subprocess
 import logging
 import os
 from datetime import datetime
@@ -67,18 +67,24 @@ class Backup():
         return retval
 
     @staticmethod
-    def backup_model(full_path):
+    def backup_model(full_path, best=False):
         """ Backup a model file.
 
-        The backed up file is saved with the original filename in the original location with `.bk`
-        appended to the end of the name.
+        The backed up file is saved with the original filename in the original
+        location with `.bk` appended to the end of the name unless best = True.
+        Then '.best' is appended instead, The intention is to allow for frequent
+        backups to protect against file corruption and also best loss backups
+        to protect against model corruption.
 
         Parameters
         ----------
         full_path: str
             The full path to a `.h5` model file or a `.json` state file
         """
-        backupfile = full_path + ".bk"
+        if best:
+            backupfile = full_path + ".best"
+        else:
+            backupfile = full_path + ".bk"
         if os.path.exists(backupfile):
             os.remove(backupfile)
         if os.path.exists(full_path):
@@ -115,6 +121,20 @@ class Backup():
             copyfunc = copytree if os.path.isdir(srcfile) else copyfile
             logger.debug("Saving snapshot: '%s' > '%s'", srcfile, dstfile)
             copyfunc(srcfile, dstfile)
+
+        # Snapshot hook for things copying the snapshot to a cloud bucket.
+        # Hook should be a shell script named "snapshot_hook.sh" placed in the
+        # model directory. Faceswap won't wait for the script to finish.
+        snapshot_hook = os.path.join(self.model_dir, "snapshot_hook.sh")
+        try:
+            # Pass the name of the just created snapshot as a script parameter
+            logger.info("Running " + snapshot_hook)
+            subprocess.Popen([snapshot_hook, snapshot_dir])
+        except FileNotFoundError:
+            logger.info(snapshot_hook + " not found")
+        except PermissionError:
+            logger.info(snapshot_hook + " does not have execute permission")
+
         logger.info("Saved snapshot (%s iterations)", iterations)
 
     def restore(self):

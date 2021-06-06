@@ -284,7 +284,7 @@ def read_image(filename, raise_error=False, with_metadata=False):
         success = False
         msg = "Error while reading image (TypeError): '{}'".format(filename)
         msg += ". Original error message: {}".format(str(err))
-        logger.error(msg)
+        logger.debug(msg)
         if raise_error:
             raise Exception(msg)
     except ValueError as err:
@@ -292,13 +292,13 @@ def read_image(filename, raise_error=False, with_metadata=False):
         msg = ("Error while reading image. This can be caused by special characters in the "
                "filename or a corrupt image file: '{}'".format(filename))
         msg += ". Original error message: {}".format(str(err))
-        logger.error(msg)
+        logger.debug(msg)
         if raise_error:
             raise Exception(msg)
     except Exception as err:  # pylint:disable=broad-except
         success = False
         msg = "Failed to load image '{}'. Original Error: {}".format(filename, str(err))
-        logger.error(msg)
+        logger.debug(msg)
         if raise_error:
             raise Exception(msg)
     logger.trace("Loaded image: '%s'. Success: %s", filename, success)

@@ -429,8 +429,9 @@ class Extract():  # pylint:disable=too-few-public-methods
         elif not os.path.isdir(self._faces_dir):
             logger.debug("Creating folder: '%s'", self._faces_dir)
             os.makedirs(self._faces_dir)
-        elif os.listdir(self._faces_dir):
-            err = "ERROR: Output faces folder should be empty: '{}'".format(self._faces_dir)
+        # Why do we care if it is empty? Trust the user!
+        #elif os.listdir(self._faces_dir):
+        #    err = "ERROR: Output faces folder should be empty: '{}'".format(self._faces_dir)
         if err:
             logger.error(err)
             sys.exit(0)
@@ -675,7 +676,11 @@ class RemoveFaces():  # pylint:disable=too-few-public-methods
 
         logger.info("%s alignment(s) were removed from alignments file", del_count)
 
-        self._update_png_headers()
+        # This is crashing, preventing the alignment file from being saved.
+        # Having a job that updates the alignment file based on the images also change
+        # the images seems sketchy anyway.
+        #self._update_png_headers()
+
         self._alignments.save()
 
         rename = Rename(self._alignments, None, self._items)
