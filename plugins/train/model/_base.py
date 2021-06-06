@@ -589,19 +589,27 @@ class _IO():
         logger.debug("Backing up and saving models")
         print("")  # Insert a new line to avoid spamming the same row as loss output
         save_averages = self._get_save_averages()
-        if save_averages and self._should_backup(save_averages):
-            self._backup.backup_model(self._filename)
-            # pylint:disable=protected-access
-            self._backup.backup_model(self._plugin.state._filename)
+
+        # Always do a backup to protect against file corruption but name
+        # differently if loss has decreased to protect against model corruption
+        best = save_averages and self._should_backup(save_averages)
+        self._backup.backup_model(self._filename, best)
+        # pylint:disable=protected-access
+        self._backup.backup_model(self._plugin.state._filename, best)
 
         self._plugin.model.save(self._filename, include_optimizer=False)
         self._plugin.state.save()
 
-        msg = "[Saved models]"
+        # Make saved messages shorter and more useful. GUI preview image
+        # is triggered by the presence of the "Saved models" string in the info
+        # message so don't change that!
+        msg = "[Saved models]"  # Don't change
         if save_averages:
-            lossmsg = ["face_{}: {:.5f}".format(side, avg)
+            lossmsg = ["{}:{:.5f}".format(side, avg)
                        for side, avg in zip(("a", "b"), save_averages)]
-            msg += " - Average loss since last save: {}".format(", ".join(lossmsg))
+            msg += " #{} {}".format(self._plugin.iterations, ", ".join(lossmsg))
+            if best:
+                msg += " BEST"
         logger.info(msg)
 
     def _get_save_averages(self):
@@ -1029,8 +1037,11 @@ class _Weights():
             raise FaceswapError(f"Error loading weights file {self._weights_file}.")
 
         if retval[0].name != self._name:
-            raise FaceswapError(f"You are attempting to load weights from a '{retval[0].name}' "
-                                f"model into a '{self._name}' model. This is not supported.")
+            # Trust the user!
+            logger.warning("You are attempting to load weights from a different model. "
+                           " Hope you know what you are doing!")
+        #    raise FaceswapError(f"You are attempting to load weights from a '{retval[0].name}' "
+        #                       f"model into a '{self._name}' model. This is not supported.")
         return retval
 
     def _load_layer_weights(self, layer, sub_weights, model_name):

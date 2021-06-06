@@ -118,9 +118,12 @@ class Writer(Output):
             sized images coming in and ensure all images go out at the same size for writers
             that require it and mapped to a macro block size 16"""
         logger.debug("input dimensions: %s", frame_dims)
-        self.output_dimensions = "{}:{}".format(
-            int(ceil(frame_dims[1] / 16) * 16),
-            int(ceil(frame_dims[0] / 16) * 16))
+        # Don't do this round up thing because it makes 1080p input into 1088.
+        # Trust the user!
+        #self.output_dimensions = "{}:{}".format(
+        #    int(ceil(frame_dims[1] / 16) * 16),
+        #    int(ceil(frame_dims[0] / 16) * 16))
+        self.output_dimensions = "{}:{}".format(frame_dims[1], frame_dims[0])
         logger.debug("Set dimensions: %s", self.output_dimensions)
 
     def save_from_cache(self):
